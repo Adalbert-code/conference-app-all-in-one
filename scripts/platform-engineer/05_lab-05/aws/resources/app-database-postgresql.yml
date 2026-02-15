@@ -1,0 +1,56 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: sql.db.aws.eazytraining.io
+  labels:
+    type: dev
+    provider: aws
+    kind: sql
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: eazytraining.io/v1alpha1
+    kind: Database
+  resources:
+    - name: rdsinstance
+      base:
+        apiVersion: rds.aws.upbound.io/v1beta1
+        kind: Instance
+        metadata:
+          annotations:
+            crossplane.io/external-name: # patched
+        spec:
+          providerConfigRef:
+            name: default
+          forProvider:
+            region: us-east-1
+            allocatedStorage: 5
+            instanceClass: db.t3.micro
+            passwordSecretRef:
+              key: password
+              name: example-dbinstance
+              namespace: default
+            engine: postgres
+            engineVersion: "13"
+            skipFinalSnapshot: true
+            username: salaboy
+            port: 5432
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+            name: postgresql
+      patches:
+        - fromFieldPath: metadata.name
+          toFieldPath: metadata.annotations[crossplane.io/external-name]
+          policy:
+            fromFieldPath: Required
+        - fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-postgres"
+      connectionDetails:
+        - fromConnectionSecretKey: username
+        - fromConnectionSecretKey: password
+        - fromConnectionSecretKey: endpoint
+        - fromConnectionSecretKey: port

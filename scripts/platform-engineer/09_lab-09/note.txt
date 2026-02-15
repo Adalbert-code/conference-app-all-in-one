@@ -1,0 +1,30 @@
+# install keptn + grafana + prometheus + Jaeger + cert-manager
+make install
+
+# annotate application namespace
+kubectl annotate ns default keptn.sh/lifecycle-toolkit="enabled"
+
+# create post-deployment-task
+kubectl apply -f keptntask.yaml
+
+# access Jaeger
+make port-forward-jaeger
+
+# access Grafana login : admin password : admin
+make port-forward-grafana
+
+# access prometheus
+make port-forward-prometheus
+
+# Install application
+helm install conference oci://registry-1.docker.io/salaboy/conference-app --version v1.0.0
+
+# Update image to v1.1.0 and app.kubernetes.io/version to v1.1.0
+kubectl edit deploy conference-notifications-service-deployment
+
+# verify post-deployment-task
+kubectl get jobs
+kubectl logs -f post-stdout-notification-<choose the latest one>
+
+# remove monitoring
+make uninstall

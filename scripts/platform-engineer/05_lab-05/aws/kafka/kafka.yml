@@ -1,0 +1,23 @@
+apiVersion: kafka.aws.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  name: kafka-cluster
+spec:
+  forProvider:
+    region: us-east-1
+    clusterName: crossplane-kafka
+    kafkaVersion: 2.6.1
+    numberOfBrokerNodes: 2 
+    brokerNodeGroupInfo:
+    - instanceType: kafka.t3.small 
+      clientSubnetsRefs:
+        - name: kafka-subnet-a
+        - name: kafka-subnet-b
+      storageInfo:
+        - ebsStorageInfo:
+          - volumeSize: 1
+  providerConfigRef:
+    name: default
+  writeConnectionSecretToRef:
+    namespace: crossplane-system
+    name: kafka

@@ -1,0 +1,69 @@
+# Install argo-rollouts
+kubectl create namespace argo-rollouts
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/download/v1.5.1/install.yaml
+
+curl -LO https://github.com/argoproj/argo-rollouts/releases/download/v1.5.1/kubectl-argo-rollouts-linux-amd64
+chmod +x ./kubectl-argo-rollouts-linux-amd64
+sudo mv ./kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+kubectl argo rollouts version
+kubectl argo rollouts dashboard # go to http://192.168.99.10:3100/rollouts/default
+
+# deploy kafka
+helm install kafka oci://registry-1.docker.io/bitnamicharts/kafka --version 22.1.5 --set "provisioning.topics[0].name=events-topic" --set "provisioning.topics[0].partitions=1" --set "persistence.size=1Gi" 
+
+### Canary deployment
+
+# deploy notification app
+kubectl apply -f 01_canary/
+
+kubectl argo rollouts get rollout notifications-service-canary --watch
+
+# run the update in other terminal
+kubectl argo rollouts set image notifications-service-canary \
+  notifications-service=salaboy/notifications-service-0e27884e01429ab7e350cb5dff61b525:v1.1.0
+
+# curl ingress (4 times to observe percentage of repartition)
+curl 192.168.99.150/service/info
+
+# view the status also in argo rollout dashboard
+
+# complete release migration to the canary one 
+kubectl argo rollouts promote notifications-service-canary
+
+# curl ingress (4 times to observe percentage of repartition)
+curl 192.168.99.150/service/info
+
+kubectl delete -f 01_canary/
+
+### Blue/Green deployment
+# deploy notification app
+kubectl apply -f 02_bluegreen/
+
+kubectl argo rollouts get rollout notifications-service-bluegreen --watch
+
+kubectl describe svc notifications-service-blue
+kubectl describe svc notifications-service-green
+# curl ingress
+curl 192.168.99.150/service/info
+curl 192.168.99.150/green/service/info
+
+# run the update in other terminal
+kubectl argo rollouts set image notifications-service-bluegreen \
+  notifications-service=salaboy/notifications-service-0e27884e01429ab7e350cb5dff61b525:v1.1.0
+
+kubectl describe svc notifications-service-blue
+kubectl describe svc notifications-service-green
+# curl ingress
+curl 192.168.99.150/service/info
+curl 192.168.99.150/green/service/info
+
+kubectl argo rollouts promote notifications-service-bluegreen
+
+kubectl describe svc notifications-service-blue
+kubectl describe svc notifications-service-green
+# curl ingress
+curl 192.168.99.150/service/info
+curl 192.168.99.150/green/service/info
+
+kubectl delete -f 02_bluegreen/
+kubectl delete -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/download/v1.5.1/install.yaml

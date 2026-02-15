@@ -1,0 +1,46 @@
+# Install dapr
+helm repo add dapr https://dapr.github.io/helm-charts/
+helm repo update
+helm upgrade --install dapr dapr/dapr \
+--version=1.11.0 \
+--namespace dapr-system \
+--create-namespace \
+--wait
+
+# package and publish chart to oci
+0- enable oci
+export HELM_EXPERIMENTAL_OCI=1
+1- generate github token helm-chart-release (with  scope write:packages et read:packages) and export 
+export PAT=<your token>
+2- login on github
+echo $PAT | helm registry login ghcr.io -u <your github username> --password-stdin
+3- package chart
+cd ..
+helm package conference-app
+4- push chart
+helm push conference-app-v2.0.0.tgz oci://ghcr.io/<your github username>
+
+rm conference-app-v2.0.0.tgz
+
+# deploy app
+helm dependency build conference-app
+helm install conference-app conference-app
+
+kubectl get po 
+kubectl get components
+kubectl get subscription
+
+# verify application
+kubectl port-forward svc/frontend -n default 8080:80 --address 0.0.0.0
+
+# Play with openfeature (deployed using openfeature.yaml helm template file)
+kubectl get cm flag-configuration -o go-template='{{index .data "flag-config.json"}}' > flag-config.json
+
+# enable debug mode
+kubectl create cm flag-configuration --from-file=flag-config.json=flag-config.json --dry-run=client -o yaml | kubectl patch cm flag-configuration --type merge --patch-file /dev/stdin
+
+# verify application
+kubectl port-forward svc/frontend -n default 8080:80 --address 0.0.0.0
+
+helm uninstall conference-app
+helm uninstall dapr -n dapr-system

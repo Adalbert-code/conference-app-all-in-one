@@ -1,0 +1,31 @@
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  name: kafka-subnet-a
+spec:
+  forProvider:
+    region: us-east-1
+    vpcIdRef:
+      name: kafka-vpc
+    cidrBlock: 10.0.1.0/24
+    availabilityZone: us-east-1a
+    tags:
+      Name: "kafka-subnet-a"
+  providerConfigRef:
+    name: default 
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  name: kafka-subnet-b
+spec:
+  forProvider:
+    region: us-east-1
+    vpcIdRef:
+      name: kafka-vpc
+    cidrBlock: 10.0.2.0/24
+    availabilityZone: us-east-1b
+    tags:
+      Name: "kafka-subnet-b"
+  providerConfigRef:
+    name: default 

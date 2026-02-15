@@ -1,0 +1,16 @@
+conference-app:
+  global:
+    image:
+      tag: "v1.0.1"
+  frontend:
+    image:
+      repository: ghcr.io/adalbert-code/frontend-service
+  agenda:
+    image:
+      repository: ghcr.io/adalbert-code/agenda-service
+  c4p:
+    image:
+      repository: ghcr.io/adalbert-code/c4p-service
+  notifications:
+    image:
+      repository: ghcr.io/adalbert-code/notifications-service
